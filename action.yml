@@ -1,0 +1,80 @@
+name: "SBOM Reusable Action"
+description: "Runs Syft and uploads results with collected evidence to DeployHub as new Component Version"
+inputs:
+  dhurl:
+    description: "DeployHub URL"
+    required: true
+  dhuser:
+    description: "DeployHub Userid"
+    required: true
+  dhpass:
+    description: "DeployHub Password"
+    required: true
+  compname:
+    description: "Name of the Component"
+    required: true
+  git_branch:
+    description: "Git Branch Name"
+    required: true
+  short_sha:
+    description: "Git Commit Short SHA"
+    required: true
+  chart_name:
+    description: "Chart Name"
+    required: false
+    default: ""
+  chart_version:
+    description: "Chart Version"
+    required: false
+    default: ""
+  image_repository:
+    description: "Image Repo"
+    required: false
+    default: ""
+  image_repo_tag:
+    description: "Image Repo Tag"
+    required: false
+    default: ""
+  image_tag:
+    description: "Image Tag"
+    required: false
+    default: ""
+  image_digest:
+    description: "Image Digest"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@07978da4bdb4faa726e52dfc6b1bed63d4b56479 # v0.13.3
+        id: sbom
+        with:
+          format: cyclonedx-json
+          output-file: /tmp/cyclonedx.json
+          image: ${{ inputs.image_repo_tag }}
+
+      - name: Update Compnent
+        id: updatecomp
+        env:
+          DHURL: ${{ inputs.dhurl }}
+          DHUSER: ${{ inputs.dhuser }}
+          DHPASS: ${{ inputs.dhpass }}
+          GIT_BRANCH: ${{ inputs.branch }}
+          CHART_VERSION: ${{ inputs.chart_version }}
+          CHART: ${{ inputs.chart_name }}
+          COMPNAME: ${{ inputs.compname }}
+          DIGEST: ${{ inputs.image_digest }}
+          IMAGE_REPO: ${{ inputs.image_repository }}
+          IMAGE_REPO_TAG: ${{ inputs.image_repo_tag }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_VERSION: ${{ inputs.image_version }}
+          SHORT_SHA: ${{ inputs.short_sha }}
+        run: |
+          pip install ortelius-cli
+          dh updatecomp --rsp component.toml --deppkg cyclonedx@/tmp/cyclonedx.json
+        shell: bash
