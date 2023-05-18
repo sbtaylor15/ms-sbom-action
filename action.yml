@@ -43,6 +43,10 @@ inputs:
     description: "Image Digest"
     required: false
     default: ""
+  image_version:
+    description: "Image Version"
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
